@@ -37,7 +37,7 @@ BUILDING and INSTALLING
     ```bash
      pacman -S dkms   #will install dkms in archlinux based distros
                       #use apt-get install dkms in debian or rpm 
-                      # in redhat distros`
+                      # in redhat distros
     ```
 
 * __linux headers__       will be installed as a dependency if you use any
