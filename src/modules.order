@@ -1,0 +1,7 @@
+kernel/drivers/input/mouse/appletouch.ko
+kernel/drivers/input/mouse/bcm5974.ko
+kernel/drivers/input/mouse/cyapa.ko
+kernel/drivers/input/mouse/psmouse.ko
+kernel/drivers/input/mouse/synaptics_i2c.ko
+kernel/drivers/input/mouse/synaptics_usb.ko
+kernel/drivers/input/mouse/vsxxxaa.ko
