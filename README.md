@@ -5,8 +5,7 @@ Linux kernel driver for newer ALPS touchpads (as of Jan 2014)
 
 QUICK START
 -----------
-Just run `install.sh` as root, it will build and install the module psmouse.ko.
-    `./install.sh`
+Just run `install.sh` as root, it will build and install the updated `psmouse` module.
 
 
 INTRODUCTION
@@ -48,7 +47,7 @@ BUILDING and INSTALLING
 ### Build and install psmouse.ko
 
 As root do the following from the directory where this README is found:
-All this is done automatically by the install.sh script.
+(all this is done automatically by the `install.sh` script)
 
 ```bash
     dkms add .  
