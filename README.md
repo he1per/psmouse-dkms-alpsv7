@@ -24,7 +24,10 @@ a dkms.conf file to make it easier to build. This page
 and build the module.
 
 Thanks specially to Tommy Will from the linux-input@vger.kernel.org mailing list
-and to Elaine (Qiting) who actually wrote the code :) 
+and to Elaine (Qiting) who actually wrote the code :) The original patch from 
+Elaine is found here:
+
+http://www.spinics.net/lists/linux-input/msg29084.html
 
 DO I NEED THIS MODULE?
 ----------------------
