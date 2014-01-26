@@ -11,14 +11,23 @@ Just run `install.sh` as root, it will build and install the updated `psmouse` m
 INTRODUCTION
 ------------
 
-Some new machines, like the Lenovo Ideapad Flex 15 have a new alps touchpad
-which uses a protocol different from previous versions. The folks at the 
-linux kernel input devices mailing list were very helpful and pointed me 
-to the right patches, I have simply gathered them together and added a dkms.conf
-file to make it easier to build. Here is how you install and build the module
+Some new machines, like the Lenovo Ideapad Flex 15 have a new ALPS touchpad
+which uses a protocol different from previous versions. The linux kernel (as of
+3.13) does not recognize them as an ALPS touchpad, and they end up being
+recognized only as a PS/2 mouse. For this reason there is no scrolling, no
+middle button emulation, no two finger recognition, etc.
+
+The folks at the linux kernel input devices mailing list were very helpful and
+pointed me to the right patches, I have simply gathered them together and added
+a dkms.conf file to make it easier to build. This page
+(https://github.com/he1per/psmouse-dkms-alpsv7) explains how you install
+and build the module.
 
 Thanks specially to Tommy Will from the linux-input@vger.kernel.org mailing list
 and to Elaine (Qiting) who actually wrote the code :) 
+
+DO I NEED THIS MODULE?
+----------------------
 
 If you get an error like this from `dmesg`:
 ```
