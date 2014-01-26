@@ -5,7 +5,20 @@ Linux kernel driver for newer ALPS touchpads (as of Jan 2014)
 
 QUICK START
 -----------
-Just run `install.sh` as root, it will build and install the updated `psmouse` module.
+Make sure you have `dkms` installed in your system:
+```
+    pacman -S dkms   #for archlinux
+```
+
+Run the following commands in your shell **__as root__**:
+```
+    cd /tmp
+    git clone http://github.com/he1per/psmouse-dkms-alpsv7
+    cd psmouse-dkms-alpsv7
+    ./install.sh
+```
+
+This will build and install the updated `psmouse` module for your current kernel.
 
 
 INTRODUCTION
