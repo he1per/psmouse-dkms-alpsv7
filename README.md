@@ -56,4 +56,5 @@ As root do the following from the directory where this README is found:
     dkms add .  
     dkms build -m psmouse-dkms-alpsv7 -v 1.0  
     dkms install -m psmouse-dkms-alpsv7 -v 1.0  
+    modprobe psmouse
 ```
