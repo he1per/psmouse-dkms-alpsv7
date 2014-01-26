@@ -34,16 +34,13 @@ dkms build -m "$M" -v "$V" || abort "Build failed"
 #Backup old module
 if [ -f "$MFILE" ]; then
    mv "$MFILE" "$MFILE.orig" || abort "Unable to backup old module. Aborting." 
-   cp "$NEWMFILE" "$MFILE"
    echo " ** Old module backed up as:"
    echo "    '$MFILE.orig'"
 
 elif [ -f "$MFILE.gz" ]; then
    mv "$MFILE.gz" "$MFILE.gz.orig" || abort "Unable to backup old module. Aborting." 
-   cp "$NEWMFILE" "$MFILE"
    echo " ** Old module backed up as:"
    echo "    '$MFILE.gz.orig'"
-   gzip -9 "$MFILE"
    GZIP=.gz
 fi
 
@@ -54,15 +51,25 @@ echo
 echo "────── Installing with dkms ───────"
 echo
 dkms install -m "$M" -v "$V" || abort "Install failed"
-echo "Install completed."
-if [ -f "$MFILE$GZIP" ]; then
-   echo "Install succeded, new module found."
+  
+if [ -f "$NEWMFILE" ]; then
+   cp "$NEWMFILE" "$MFILE"
+   echo "Install succeded:"
+   echo "    '$NEWMFILE' found and copied to:"
+   echo "    '$MFILE'"
+   if [ "x$GZIP" = "x.gz" ]; then
+      echo "Original module was gzipped, gzipping new one."
+      gzip -9 "$MFILE" || echo "Unable to gzip new module. Continuing."
+   fi
+else 
+   abort "dkms install failed:\n    '$NEWMFILE' not found."
 fi
 
 #Remove old module and modprobe new one
-echo "Removing old module."
+echo "──→ rmmod psmouse"
 rmmod psmouse 2>&1 > /dev/null
-echo "modprobe of new module..."
+echo "──→ modprobe psmouse"
+
 if ! modprobe psmouse; then
    #Restore backup if modprobe failed
    echo "modprobe psmouse failed, restoring old module."

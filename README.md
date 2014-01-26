@@ -44,7 +44,10 @@ BUILDING and INSTALLING
   of the commands above.
 
 
-### Build and install psmouse.ko
+### Manual build and install of psmouse.ko
+
+It is better to use `install.sh`, but if you want to build and install
+manually you can follow these instructions.
 
 As root do the following from the directory where this README is found:
 (all this is done automatically by the `install.sh` script)
@@ -52,5 +55,5 @@ As root do the following from the directory where this README is found:
 ```bash
     dkms add .  
     dkms build -m psmouse-dkms-alpsv7 -v 1.0  
-    dkms autoinstall -m psmouse-dkms-alpsv7 -v 1.0  
+    dkms install -m psmouse-dkms-alpsv7 -v 1.0  
 ```
