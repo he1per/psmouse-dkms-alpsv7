@@ -20,13 +20,13 @@
 #define ALPS_PROTO_V6	6
 #define ALPS_PROTO_V7	7
 
-#define MAX_IMG_PT_NUM		5
-#define V7_IMG_PT_NUM		2
+#define MAX_IMG_PT_NUM	5
+#define V7_IMG_PT_NUM	2
 
-#define ZONE_NORMAL				0x01
-#define ZONE_RESTING			0x02
-#define ZONE_LEFT_BTN			0x04
-#define ZONE_RIGHT_BTN			0x08
+#define ZONE_NORMAL		0x01
+#define ZONE_RESTING	0x02
+#define ZONE_LEFT_BTN	0x04
+#define ZONE_RIGHT_BTN	0x08
 
 #define DOLPHIN_COUNT_PER_ELECTRODE	64
 #define DOLPHIN_PROFILE_XOFFSET		8	/* x-electrode offset */
@@ -42,10 +42,11 @@
  *  previous packet.
 */
 enum V7_PACKET_ID {
-	 V7_PACKET_ID_IDLE,
-	 V7_PACKET_ID_TWO,
-	 V7_PACKET_ID_MULTI,
-	 V7_PACKET_ID_NEW,
+	V7_PACKET_ID_IDLE,
+	V7_PACKET_ID_TWO,
+	V7_PACKET_ID_MULTI,
+	V7_PACKET_ID_NEW,
+	V7_PACKET_ID_TRACKSTICK,
 };
 
 /**
@@ -150,12 +151,14 @@ struct alps_fields {
  *  in pt slot nor reflected in rest_left and rest_right flag of data packet.
  * @rest_left: There are fingers on left resting zone.
  * @rest_right: There are fingers on right resting zone.
+ * @raw_fn: The number of finger on touchpad.
  */
 struct v7_raw {
 	unsigned char pkt_id;
 	unsigned int additional_fingers;
 	unsigned char rest_left;
 	unsigned char rest_right;
+	unsigned char raw_fn;
 };
 
 /**
@@ -164,12 +167,14 @@ struct v7_raw {
  * @is_counted: The touch point is not a resting finger.
  * @is_init_pt_got: The touch down point is got.
  * @init_pt: The X Y Z position of the touch down point.
+ * @init_dead_pt: The touch down point of a finger used by dead zone process.
  */
 struct alps_bl_pt_attr {
 	unsigned char zone;
 	unsigned char is_counted;
 	unsigned char is_init_pt_got;
 	struct alps_abs_data init_pt;
+	struct alps_abs_data init_dead_pt;
 };
 
 /**
@@ -248,6 +253,7 @@ struct alps_data {
 	} r;
 	unsigned char phy_btn;
 	unsigned char prev_phy_btn;
+	unsigned char btn_delay_cnt;
 	unsigned char pressed_btn_bits;
 	struct alps_bl_pt_attr pt_attr[MAX_IMG_PT_NUM];
 };
