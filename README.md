@@ -79,7 +79,7 @@ As root do the following from the directory where this README is found:
 
 ```bash
     dkms add .  
-    dkms build -m psmouse-dkms-alpsv7 -v 1.0  
-    dkms install -m psmouse-dkms-alpsv7 -v 1.0  
+    dkms build -m psmouse-dkms-alpsv7 -v 1.1  
+    dkms install -m psmouse-dkms-alpsv7 -v 1.1  
     modprobe psmouse
 ```
