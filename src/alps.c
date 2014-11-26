@@ -1373,8 +1373,8 @@ static void alps_process_trackstick_packet_v7(struct psmouse *psmouse)
 		y |= -1 << 8;
 
 	/* Report trackstick vector */
-	input_report_rel(dev, REL_X,  x / 6);
-	input_report_rel(dev, REL_Y, -y / 8);
+	input_report_rel(dev, REL_X,  x);
+	input_report_rel(dev, REL_Y, -y);
 
 	input_sync(dev);
 }
