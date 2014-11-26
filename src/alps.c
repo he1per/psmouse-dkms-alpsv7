@@ -32,10 +32,12 @@
 #define ALPS_REG_BASE_RUSHMORE	0xc2c0
 #define ALPS_REG_BASE_PINNACLE	0x0000
 
-#define LEFT_BUTTON_BIT			0x01
-#define RIGHT_BUTTON_BIT		0x02
+#define LEFT_BUTTON_BIT  0x01
+#define RIGHT_BUTTON_BIT 0x02
 
-#define V7_LARGE_MOVEMENT		130
+#define V7_LARGE_MOVEMENT      130
+#define V7_DEAD_ZONE_OFFSET_X  72
+#define V7_DEAD_ZONE_OFFSET_Y  72
 
 static const struct alps_nibble_commands alps_v3_nibble_commands[] = {
 	{ PSMOUSE_CMD_SETPOLL,		0x00 }, /* 0 */
@@ -103,8 +105,8 @@ static const struct alps_nibble_commands alps_v6_nibble_commands[] = {
 #define ALPS_FW_BK_2		0x20	/* front & back buttons present */
 #define ALPS_FOUR_BUTTONS	0x40	/* 4 direction button present */
 #define ALPS_PS2_INTERLEAVED	0x80	/* 3-byte PS/2 packet interleaved with
-					   6-byte ALPS packet */
-#define ALPS_BTNLESS			0x100	/* ALPS ClickPad flag */
+										   6-byte ALPS packet */
+#define ALPS_BTNLESS		0x100	/* ALPS ClickPad flag */
 
 static const struct alps_model_info alps_model_data[] = {
 	{ { 0x32, 0x02, 0x14 },	0x00, ALPS_PROTO_V2, 0xf8, 0xf8, ALPS_PASS | ALPS_DUALPOINT },	/* Toshiba Salellite Pro M10 */
@@ -147,17 +149,17 @@ static void alps_set_abs_params_mt(struct alps_data *priv,
  */
 
 static unsigned int alps_pt_distance(struct alps_abs_data *pt0,
-				    struct alps_abs_data *pt1)
+                                   struct alps_abs_data *pt1)
 {
-	int vect_x, vect_y;
+       int vect_x, vect_y;
 
-	if (!pt0 || !pt1)
-		return 0;
+       if (!pt0 || !pt1)
+               return 0;
 
-	vect_x = pt0->x - pt1->x;
-	vect_y = pt0->y - pt1->y;
+       vect_x = pt0->x - pt1->x;
+       vect_y = pt0->y - pt1->y;
 
-	return int_sqrt(vect_x * vect_x + vect_y * vect_y);
+       return int_sqrt(vect_x * vect_x + vect_y * vect_y);
 }
 
 /* Packet formats are described in Documentation/input/alps.txt */
@@ -482,7 +484,7 @@ static void alps_report_semi_mt_data(struct input_dev *dev, int num_fingers,
 }
 
 static void alps_report_coord_and_btn(struct psmouse *psmouse,
-				      struct alps_fields *f)
+									  struct alps_fields *f)
 {
 	struct input_dev *dev;
 
@@ -494,8 +496,8 @@ static void alps_report_coord_and_btn(struct psmouse *psmouse,
 	if (f->fingers) {
 		input_report_key(dev, BTN_TOUCH, 1);
 		alps_report_semi_mt_data(dev, f->fingers,
-			f->pt_img[0].x, f->pt_img[0].y,
-			f->pt_img[1].x, f->pt_img[1].y);
+								 f->pt_img[0].x, f->pt_img[0].y,
+								 f->pt_img[1].x, f->pt_img[1].y);
 		input_mt_report_finger_count(dev, f->fingers);
 
 		input_report_abs(dev, ABS_X, f->pt_img[0].x);
@@ -976,6 +978,7 @@ static bool alps_is_valid_package_v7(struct psmouse *psmouse)
 		return false;
 	if ((psmouse->pktcnt == 6) && ((psmouse->packet[5] & 0x40) != 0x0))
 		return false;
+
 	return true;
 }
 
@@ -1003,6 +1006,8 @@ static unsigned char alps_get_packet_id_v7(char *byte)
 		packet_id = V7_PACKET_ID_MULTI;
 	else if ((byte[0] & 0x10) && !(byte[4] & 0x43))
 		packet_id = V7_PACKET_ID_NEW;
+	else if (byte[1] & 0x08)
+		packet_id = V7_PACKET_ID_TRACKSTICK;
 	else
 		packet_id = V7_PACKET_ID_IDLE;
 
@@ -1010,22 +1015,25 @@ static unsigned char alps_get_packet_id_v7(char *byte)
 }
 
 static void alps_get_finger_coordinate_v7(struct alps_abs_data *pt,
-					  unsigned char *pkt,
-					  unsigned char pkt_id)
+										  unsigned char *pkt,
+										  unsigned char pkt_id)
 {
 	if ((pkt_id == V7_PACKET_ID_TWO) ||
 	   (pkt_id == V7_PACKET_ID_MULTI) ||
-	   (pkt_id == V7_PACKET_ID_NEW)) {
-		pt[0].x = ((pkt[2] & 0x80) << 4);
+	   (pkt_id == V7_PACKET_ID_NEW))
+	{
+		pt[0].x  = ((pkt[2] & 0x80) << 4);
 		pt[0].x |= ((pkt[2] & 0x3F) << 5);
 		pt[0].x |= ((pkt[3] & 0x30) >> 1);
 		pt[0].x |= (pkt[3] & 0x07);
+
 		pt[0].y = (pkt[1] << 3) | (pkt[0] & 0x07);
 
-		pt[1].x = ((pkt[3] & 0x80) << 4);
+		pt[1].x  = ((pkt[3] & 0x80) << 4);
 		pt[1].x |= ((pkt[4] & 0x80) << 3);
 		pt[1].x |= ((pkt[4] & 0x3F) << 4);
-		pt[1].y = ((pkt[5] & 0x80) << 3);
+
+		pt[1].y  = ((pkt[5] & 0x80) << 3);
 		pt[1].y |= ((pkt[5] & 0x3F) << 4);
 
 		if (pkt_id == V7_PACKET_ID_TWO) {
@@ -1051,12 +1059,11 @@ static void alps_get_finger_coordinate_v7(struct alps_abs_data *pt,
 }
 
 static void alps_decode_packet_v7(struct alps_fields *f,
-				  unsigned char *p,
-				  struct psmouse *psmouse)
+								  unsigned char *p,
+								  struct psmouse *psmouse)
 {
 	struct alps_data *priv = psmouse->private;
-
-	priv->r.v7.pkt_id = alps_get_packet_id_v7(p);
+	static struct v7_raw prev_r;
 
 	alps_get_finger_coordinate_v7(f->pt_img, p, priv->r.v7.pkt_id);
 
@@ -1066,7 +1073,8 @@ static void alps_decode_packet_v7(struct alps_fields *f,
 	priv->phy_btn = 0;
 
 	if (priv->r.v7.pkt_id == V7_PACKET_ID_TWO ||
-	    priv->r.v7.pkt_id == V7_PACKET_ID_MULTI) {
+		priv->r.v7.pkt_id == V7_PACKET_ID_MULTI)
+	{
 		priv->r.v7.rest_left = (p[0] & 0x10) >> 4;
 		priv->r.v7.rest_right = (p[0] & 0x20) >> 5;
 	}
@@ -1075,11 +1083,38 @@ static void alps_decode_packet_v7(struct alps_fields *f,
 		priv->r.v7.additional_fingers = p[5] & 0x03;
 
 	priv->phy_btn = (p[0] & 0x80) >> 7;
+
+	if (priv->r.v7.pkt_id == V7_PACKET_ID_TWO) {
+		if (f->pt_img[0].z != 0 && f->pt_img[1].z != 0)
+			priv->r.v7.raw_fn = 2;
+		else
+			priv->r.v7.raw_fn = 1;
+	} else if (priv->r.v7.pkt_id == V7_PACKET_ID_MULTI)
+		priv->r.v7.raw_fn = 3 + priv->r.v7.additional_fingers;
+	else if (priv->r.v7.pkt_id == V7_PACKET_ID_IDLE)
+		priv->r.v7.raw_fn = 0;
+	else if (priv->r.v7.pkt_id == V7_PACKET_ID_NEW)
+		priv->r.v7.raw_fn = prev_r.raw_fn;
+
+	/*
+	 * It is a trick to bypass firmware bug of older version
+	 * that 'New' Packet is missed when finger number changed.
+	 * We fake a 'New' Packet in such cases.
+	 */
+	if (priv->r.v7.pkt_id == V7_PACKET_ID_TWO ||
+	    priv->r.v7.pkt_id == V7_PACKET_ID_MULTI ||
+	    priv->r.v7.pkt_id == V7_PACKET_ID_IDLE)
+	{
+		if (priv->r.v7.raw_fn != prev_r.raw_fn)
+			priv->r.v7.pkt_id = V7_PACKET_ID_NEW;
+	}
+
+	memcpy(&prev_r, &priv->r.v7, sizeof(struct v7_raw));
 }
 
 static void alps_set_each_pt_attr_v7(struct psmouse *psmouse,
-				     struct alps_abs_data *pt,
-				     struct alps_bl_pt_attr *pt_attr)
+									 struct alps_abs_data *pt,
+									 struct alps_bl_pt_attr *pt_attr)
 {
 	struct alps_data *priv = psmouse->private;
 	unsigned int dist;
@@ -1092,14 +1127,18 @@ static void alps_set_each_pt_attr_v7(struct psmouse *psmouse,
 
 	if (pt->z != 0) {
 		if (pt->y < priv->resting_zone_y_min) {
-			/* A finger is recognized as a non-resting finger
-			if it's position is outside the resting finger zone.*/
+			/*
+			 * A finger is recognized as a non-resting finger
+			 * if it's position is outside the resting finger zone.
+			 */
 			pt_attr->zone = ZONE_NORMAL;
 			pt_attr->is_counted = 1;
 		} else {
-			/* A finger is recognized as a resting finger if it's
-			position is inside the resting finger zone and there's
-			no large movement from it's touch down position.*/
+			/*
+			 * A finger is recognized as a resting finger if it's
+			 * position is inside the resting finger zone and there's
+			 * no large movement from it's touch down position.
+			 */
 			pt_attr->zone = ZONE_RESTING;
 
 			if (pt->x > priv->x_max / 2)
@@ -1107,11 +1146,13 @@ static void alps_set_each_pt_attr_v7(struct psmouse *psmouse,
 			else
 				pt_attr->zone |= ZONE_LEFT_BTN;
 
-			/* A resting finger will turn to be a non-resting
-			finger if it has made large movement from it's touch
-			down position. A non-resting finger will never turn
-			to a resting finger before it leaves the touchpad
-			surface.*/
+			/*
+			 * A resting finger will turn to be a non-resting
+			 * finger if it has made large movement from it's touch
+			 * down position. A non-resting finger will never turn
+			 * to a resting finger before it leaves the touchpad
+			 * surface.
+			 */
 			if (pt_attr->is_init_pt_got) {
 				dist = alps_pt_distance(pt, &pt_attr->init_pt);
 
@@ -1123,98 +1164,157 @@ static void alps_set_each_pt_attr_v7(struct psmouse *psmouse,
 }
 
 static void alps_set_pt_attr_v7(struct psmouse *psmouse,
-				       struct alps_fields *f)
+							    struct alps_fields *f)
 {
 	struct alps_data *priv = psmouse->private;
 	int i;
 
 	switch (priv->r.v7.pkt_id) {
-	case  V7_PACKET_ID_TWO:
-	case  V7_PACKET_ID_MULTI:
-		for (i = 0; i < V7_IMG_PT_NUM; i++)
-			alps_set_each_pt_attr_v7(psmouse,
-						 &f->pt_img[i],
-						 &priv->pt_attr[i]);
-		break;
-	default:
-		/*All finger attributes are cleared when packet ID is
-		'IDLE', 'New'or other unknown IDs. An 'IDLE' packet
-		indicates that there's no finger and no button activity.
-		A 'NEW' packet indicates the finger position in packet
-		is not continues from previous packet. Such as the
-		condition there's finger placed or lifted. In these cases,
-		finger attributes will be reset.*/
-		memset(priv->pt_attr, 0, sizeof(priv->pt_attr[0]) * 2);
-		break;
+		case  V7_PACKET_ID_TWO:
+		case  V7_PACKET_ID_MULTI:
+			for (i = 0; i < V7_IMG_PT_NUM; i++) {
+				alps_set_each_pt_attr_v7(psmouse,
+										 &f->pt_img[i],
+										 &priv->pt_attr[i]);
+			}
+			break;
+
+		default:
+			/*
+			 * All finger attributes are cleared when packet ID is
+			 * 'IDLE', 'New'or other unknown IDs. An 'IDLE' packet
+			 * indicates that there's no finger and no button activity.
+			 * A 'NEW' packet indicates the finger position in packet
+			 * is not continues from previous packet. Such as the
+			 * condition there's finger placed or lifted. In these cases,
+			 * finger attributes will be reset.
+			 */
+			memset(priv->pt_attr, 0, sizeof(priv->pt_attr[0]) * 2);
+			break;
 	}
 }
 
 static void alps_cal_output_finger_num_v7(struct psmouse *psmouse,
-					struct alps_fields *f)
+										  struct alps_fields *f)
 {
 	struct alps_data *priv = psmouse->private;
 	unsigned int fn = 0;
 	int i;
 
 	switch (priv->r.v7.pkt_id) {
-	case V7_PACKET_ID_IDLE:
-	case V7_PACKET_ID_NEW:
-		/*No finger is reported when packet ID is 'IDLE' or 'New'.
-		An 'IDLE' packet indicates that there's no finger on touchpad.
-		A 'NEW' packet indicates there's finger placed or lifted.
-		Finger position of 'New' packet is not continues from the
-		previous packet.*/
-		fn = 0;
-		break;
-	case V7_PACKET_ID_TWO:
-		if (f->pt_img[0].z == 0) {
-			/*The first finger slot is zero when a non-resting
-			finger lifted and remaining only one resting finger
-			on touchpad. Hardware report the remaining resting
-			finger in second slot. This resting is ignored*/
+		case V7_PACKET_ID_IDLE:
+		case V7_PACKET_ID_NEW:
+			/*
+			 * No finger is reported when packet ID is 'IDLE' or 'New'.
+			 * An 'IDLE' packet indicates that there's no finger on touchpad.
+			 * A 'NEW' packet indicates there's finger placed or lifted.
+			 * Finger position of 'New' packet is not continues from the
+			 * previous packet.
+			 */
 			fn = 0;
-		} else if (f->pt_img[1].z == 0) {
-			/* The second finger slot is zero if there's
-			only one finger*/
-			fn = 1;
-		} else {
-			/*All non-resting fingers will be counted to report*/
-			fn = 0;
-			for (i = 0; i < V7_IMG_PT_NUM; i++) {
-				if (priv->pt_attr[i].is_counted)
-					fn++;
-			}
-
-			/*In the case that both fingers are
-			resting fingers, report the first one*/
-			if (!priv->pt_attr[0].is_counted &&
-			    !priv->pt_attr[1].is_counted) {
+			break;
+		case V7_PACKET_ID_TWO:
+			if (f->pt_img[0].z == 0) {
+				/*
+				 * The first finger slot is zero when a non-resting
+				 * finger lifted and remaining only one resting finger
+				 * on touchpad. Hardware report the remaining resting
+				 * finger in second slot. This resting is ignored
+				 */
+				fn = 0;
+			} else if (f->pt_img[1].z == 0) {
+				/*
+				 * The second finger slot is zero if there's
+				 * only one finger
+				 */
 				fn = 1;
+			} else {
+				/* All non-resting fingers will be counted to report */
+				fn = 0;
+				for (i = 0; i < V7_IMG_PT_NUM; i++) {
+					if (priv->pt_attr[i].is_counted)
+						fn++;
+				}
+
+				/*
+				 * In the case that both fingers are
+				 * resting fingers, report the first one
+				 */
+				if (!priv->pt_attr[0].is_counted &&
+				    !priv->pt_attr[1].is_counted)
+				{
+					fn = 1;
+				}
 			}
-		}
-		break;
-	case V7_PACKET_ID_MULTI:
-		/*A packet ID 'MULTI' indicats that at least 3 non-resting
-		finger exist.*/
-		fn = 3 + priv->r.v7.additional_fingers;
-		break;
+			break;
+		case V7_PACKET_ID_MULTI:
+			/*
+			 * A packet ID 'MULTI' indicats that at least 3 non-resting
+			 * finger exist.
+			 */
+			fn = 3 + priv->r.v7.additional_fingers;
+			break;
 	}
 
 	f->fingers = fn;
 }
 
+static void alps_button_dead_zone_filter(struct psmouse *psmouse,
+										 struct alps_fields *f,
+										 struct alps_fields *prev_f)
+{
+	struct alps_data *priv = psmouse->private;
+	int dx, dy;
+
+	if (priv->prev_phy_btn == 0 && priv->phy_btn != 0) {
+		memcpy(&priv->pt_attr[0].init_dead_pt,
+			   &f->pt_img[0],
+			   sizeof(struct alps_abs_data));
+	}
+
+	if (priv->pt_attr[0].init_dead_pt.x != 0 &&
+	    priv->pt_attr[0].init_dead_pt.x != 0)
+	{
+		dx = f->pt_img[0].x - priv->pt_attr[0].init_dead_pt.x;
+		dy = f->pt_img[0].y - priv->pt_attr[0].init_dead_pt.y;
+		if ((abs(dx) > V7_DEAD_ZONE_OFFSET_X) ||
+		    (abs(dy) > V7_DEAD_ZONE_OFFSET_Y))
+		{
+			memset(&priv->pt_attr[0].init_dead_pt, 0,
+				   sizeof(struct alps_abs_data));
+			priv->btn_delay_cnt = 0;
+		} else {
+			memcpy(&f->pt_img[0],
+				   &prev_f->pt_img[0],
+				   sizeof(struct alps_abs_data));
+			if (priv->prev_phy_btn == 0 && priv->phy_btn != 0)
+				priv->btn_delay_cnt = 2;
+		}
+	}
+
+	if (priv->btn_delay_cnt > 0) {
+		f->btn.left = 0;
+		f->btn.right = 0;
+		priv->btn_delay_cnt--;
+	}
+}
+
 static void alps_assign_buttons_v7(struct psmouse *psmouse,
-				   struct alps_fields *f)
+								   struct alps_fields *f,
+								   struct alps_fields *prev_f)
 {
 	struct alps_data *priv = psmouse->private;
 
 	if (priv->phy_btn) {
 		if (!priv->prev_phy_btn) {
-			/* Report a right click as long as there's finger on
-			right button zone. Othrewise, report a left click.*/
+			/*
+			 * Report a right click as long as there's finger on
+			 * right button zone. Othrewise, report a left click.
+			 */
 			if (priv->r.v7.rest_right ||
 			    priv->pt_attr[0].zone & ZONE_RIGHT_BTN ||
-			    priv->pt_attr[1].zone & ZONE_RIGHT_BTN) {
+			    priv->pt_attr[1].zone & ZONE_RIGHT_BTN)
+			{
 				f->btn.right = 1;
 				priv->pressed_btn_bits |= RIGHT_BUTTON_BIT;
 			} else {
@@ -1233,14 +1333,65 @@ static void alps_assign_buttons_v7(struct psmouse *psmouse,
 		f->btn.left = 0;
 	}
 
+	alps_button_dead_zone_filter(psmouse, f, prev_f);
+
 	priv->prev_phy_btn = priv->phy_btn;
+}
+
+static void alps_process_trackstick_packet_v7(struct psmouse *psmouse)
+{
+	unsigned char    *packet = psmouse->packet;
+	struct alps_data *priv   = psmouse->private;
+	struct input_dev *dev    = priv->dev2;
+
+	int x, y;  /* trackstick vector */
+
+	/* Buttons status is reported for any packet */
+	input_report_key(dev, BTN_LEFT,  !!(0x01 & packet[1]));
+	input_report_key(dev, BTN_RIGHT, !!(0x02 & packet[1]));
+
+	/*
+	 * AlpsPS/2 v7 trackstick produces 2D relative coorinates
+	 * as signed integers (normal binary complement +1 encoding)
+	 */
+
+	x  = (0x3f & packet[2]);       /* low 6 bits */
+	x |= (0x10 & packet[3]) << 2;  /* bit 7      */
+	x |= (0x80 & packet[2]);       /* bit 8      */
+
+	/* x sign */
+	if (0x10 & packet[1])
+		x |= -1 << 8;
+
+	y  = (0x07 & packet[3]);       /* low 3 bits */
+	y |= (0x20 & packet[3]) >> 2;  /* bit 4      */
+	y |= (0x38 & packet[4]) << 1;  /* bits 5 - 7 */
+	y |= (0x80 & packet[4]);       /* bit 8      */
+
+	/* y sign */
+	if (0x20 & packet[1])
+		y |= -1 << 8;
+
+	/* Report trackstick vector */
+	input_report_rel(dev, REL_X,  x / 6);
+	input_report_rel(dev, REL_Y, -y / 8);
+
+	input_sync(dev);
 }
 
 static void alps_process_packet_v7(struct psmouse *psmouse)
 {
 	struct alps_data *priv = psmouse->private;
 	struct alps_fields f = {0};
+	static struct alps_fields prev_f;
 	unsigned char *packet = psmouse->packet;
+
+	/* Resolve packet ID */
+	priv->r.v7.pkt_id = alps_get_packet_id_v7(packet);
+
+	/* Process trackstick packet separately */
+	if (priv->r.v7.pkt_id == V7_PACKET_ID_TRACKSTICK)
+		return alps_process_trackstick_packet_v7(psmouse);
 
 	priv->decode_fields(&f, packet, psmouse);
 
@@ -1251,9 +1402,11 @@ static void alps_process_packet_v7(struct psmouse *psmouse)
 
 	alps_cal_output_finger_num_v7(psmouse, &f);
 
-	alps_assign_buttons_v7(psmouse, &f);
+	alps_assign_buttons_v7(psmouse, &f, &prev_f);
 
 	alps_report_coord_and_btn(psmouse, &f);
+
+	memcpy(&prev_f, &f, sizeof(struct alps_fields));
 }
 
 static void alps_report_bare_ps2_packet(struct psmouse *psmouse,
@@ -1421,10 +1574,10 @@ static psmouse_ret_t alps_process_byte(struct psmouse *psmouse)
 	}
 
 	if ((priv->proto_version == ALPS_PROTO_V7 &&
-	    !alps_is_valid_package_v7(psmouse))) {
+	     !alps_is_valid_package_v7(psmouse))) {
 		psmouse_dbg(psmouse, "refusing packet[%i] = %x\n",
-			    psmouse->pktcnt - 1,
-			    psmouse->packet[psmouse->pktcnt - 1]);
+		            psmouse->pktcnt - 1,
+		            psmouse->packet[psmouse->pktcnt - 1]);
 		return PSMOUSE_BAD_DATA;
 	}
 
@@ -1542,18 +1695,18 @@ static int alps_rpt_cmd(struct psmouse *psmouse, int init_command,
 
 static int alps_check_valid_firmware_id(unsigned char id[])
 {
-	int valid = 1;
+       int valid = 1;
 
-	if (id[0] == 0x73)
-		valid = 1;
-	else if (id[0] == 0x88) {
-		if ((id[1] == 0x07) ||
-		    (id[1] == 0x08) ||
-		    ((id[1] & 0xf0) == 0xB0))
-			valid = 1;
-	}
+       if (id[0] == 0x73)
+               valid = 1;
+       else if (id[0] == 0x88) {
+               if ((id[1] == 0x07) ||
+                   (id[1] == 0x08) ||
+                   ((id[1] & 0xf0) == 0xB0))
+                       valid = 1;
+       }
 
-	return valid;
+       return valid;
 }
 
 static int alps_enter_command_mode(struct psmouse *psmouse)
@@ -2069,28 +2222,32 @@ error:
 
 static int alps_hw_init_v7(struct psmouse *psmouse)
 {
-	struct ps2dev *ps2dev = &psmouse->ps2dev;
-	int reg_val, ret = -1;
+       struct ps2dev *ps2dev = &psmouse->ps2dev;
+       int reg_val, ret = -1;
 
-	if (alps_enter_command_mode(psmouse) ||
-	    alps_command_mode_read_reg(psmouse, 0xc2d9) == -1)
-		goto error;
+       if (alps_enter_command_mode(psmouse))
+               goto error;
 
-	if (alps_command_mode_write_reg(psmouse, 0xc2c9, 0x64))
-		goto error;
+       reg_val = alps_command_mode_read_reg(psmouse, 0xc2d9);
+       if (reg_val == -1)
+               goto error;
 
-	reg_val = alps_command_mode_read_reg(psmouse, 0xc2c4);
-	if (reg_val == -1)
-		goto error;
-	if (__alps_command_mode_write_reg(psmouse, reg_val | 0x02))
-		goto error;
+       if (alps_command_mode_write_reg(psmouse, 0xc2c9, 0x64))
+               goto error;
 
-	alps_exit_command_mode(psmouse);
-	return ps2_command(ps2dev, NULL, PSMOUSE_CMD_ENABLE);
+       reg_val = alps_command_mode_read_reg(psmouse, 0xc2c4);
+       if (reg_val == -1)
+               goto error;
+
+       if (__alps_command_mode_write_reg(psmouse, reg_val | 0x02))
+               goto error;
+
+       alps_exit_command_mode(psmouse);
+       return ps2_command(ps2dev, NULL, PSMOUSE_CMD_ENABLE);
 
 error:
-	alps_exit_command_mode(psmouse);
-	return ret;
+       alps_exit_command_mode(psmouse);
+       return ret;
 }
 
 /* Must be in command mode when calling this function */
@@ -2322,6 +2479,12 @@ static void alps_set_defaults(struct alps_data *priv)
 		priv->mask0 = 0x48;
 		priv->flags = 0;
 		priv->slot_number = 2;
+
+		priv->phy_btn = 0;
+		priv->prev_phy_btn = 0;
+		priv->btn_delay_cnt = 0;
+		priv->pressed_btn_bits = 0;
+		memset(priv->pt_attr, 0, sizeof(priv->pt_attr[0]) * 2);
 		break;
 	}
 }
