@@ -1,8 +1,16 @@
-#!/bin/sh
+#!/bin/bash
 
 source ./dkms.conf
 
 MDIR="/usr/lib/modules/$(uname -r)"
+if [ ! -d "$MDIR" ]; then
+    MDIR="/lib/modules/$(uname -r)"
+    if [ ! -d "$MDIR"]; then
+        echo "Error: Could not find module directory!" >&2
+        exit 1
+    fi
+fi
+
 NEWMDIR="$MDIR/${DEST_MODULE_LOCATION[0]}"
 
 MFILE="$MDIR/kernel/drivers/input/mouse/${BUILT_MODULE_NAME[0]}.ko"
