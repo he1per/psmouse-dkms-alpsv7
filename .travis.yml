@@ -1,5 +1,5 @@
 before_install:
    - sudo apt-get update -qq
-   - sudo apt-get install -qq dkms linux-headers-$(uname -r)
+   - sudo apt-get install -qq dkms linux-headers-$(uname -r | cut -d \- -f 1).\*
 language: shell
 script: "sudo ./install.sh"
