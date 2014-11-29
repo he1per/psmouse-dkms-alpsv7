@@ -1,0 +1,2 @@
+language: shell
+script: "sudo ./install.sh"
