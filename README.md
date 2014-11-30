@@ -52,6 +52,9 @@ psmouse serio1: alps: Unknown ALPS touchpad: E7=73 03 0a, EC=88 b6 06
 
 then you need this module. Your touchpad will be recognized after you install it.
 
+If you have a Toshiba Z30-A, you need to update to kernel 3.17  and you won't
+need this patch.
+
 
 BUILDING and INSTALLING
 -----------------------
