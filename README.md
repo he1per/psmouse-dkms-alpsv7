@@ -5,9 +5,10 @@ Linux kernel driver for newer ALPS touchpads (as of Mar 2014)
 
 QUICK START
 -----------
-Make sure you have `dkms` installed in your system:
+Make sure you have `dkms` and `linux-headers` nstalled in your system:
 ```
-    pacman -S dkms   #for archlinux
+    sudo pacman -S dkms linux-headers            #for archlinux
+    sudo apt-get dkms linux-headers-$(uname -r)  #for ubuntu/debian
 ```
 
 Run the following commands in your shell **__as root__**:
